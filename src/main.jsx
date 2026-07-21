@@ -252,6 +252,7 @@ function Story({ beat, companionName, childName, narratorStyle, soundEnabled, on
 }
 
 function Book({ toyName, childName, narratorStyle, soundEnabled, choices, onRestart, artWorld }) {
+  const [showMovie, setShowMovie] = useState(false);
   const playIdeas = {
     watercolor: ['Find a cozy corner for a blanket “forest camp.”', 'Collect three soft or green things for Poppy’s trail.'],
     starlight: ['Look out a window and name three things that sparkle.', 'Make a moon map with a grown-up using paper and crayons.'],
@@ -262,17 +263,90 @@ function Book({ toyName, childName, narratorStyle, soundEnabled, choices, onRest
   const fullStory = `A gentle bedtime story for ${name}. One quiet evening, ${toyName} saw a silver star fall into the Whispering Woods. ${toyName} packed ${choices[0]?.story ?? 'a brave little lantern'} and followed its glow. Beneath the ferns, a shy firefly offered to help. ${toyName} ${choices[1]?.story ?? 'sang a small, silly song until the firefly laughed and glowed brighter'}. Together they found the star beneath an old oak tree. Before going home, ${toyName} promised ${choices[2]?.story ?? 'to share brave stories with anyone who felt small'}. The star was safe again, and the moon watched over them both. Sleep well, ${name}. The end.`;
   const { isPlaying, toggle } = useStoryNarration(fullStory, narratorStyle, soundEnabled);
   return (
-    <section className="book page-enter" aria-live="polite">
-      <div className={`book-cover cover-${artWorld}`}><div className="cover-star">✦</div><span className="cover-eyebrow">A shared story starring {name}</span><h1>{toyName} and<br />the Lost Star</h1><div className="cover-bunny">•ᴗ•</div><p>Made with a little bit of magic</p></div>
-      <div className="book-summary">
-        <p className="eyebrow">Your story is complete</p>
-        <h2>You made every important choice.</h2>
-        <p>Along the way, {toyName} chose <strong>{choices[0]?.label}</strong>, helped a new friend by <strong>{choices[1]?.label}</strong>, and promised to <strong>{choices[2]?.label?.toLowerCase()}</strong>.</p>
-        <div className="book-actions"><button className="primary-button" onClick={onRestart}>Make another <span>→</span></button><button className={isPlaying ? 'secondary-button playing' : 'secondary-button'} onClick={toggle} disabled={!soundEnabled}>{isPlaying ? '■ Stop story' : soundEnabled ? '▶ Listen to the whole story' : 'Narration is off'}</button></div>
-        <div className="story-to-play"><div className="play-heading"><span>☀</span><b>Take the story off the page</b></div><p>Try one of {toyName}’s real-world adventures:</p><ul>{playIdeas[artWorld].map((idea) => <li key={idea}>{idea}</li>)}</ul></div>
-        <p className="tiny-note">A grown-up can save or share this story from the family space.</p>
-      </div>
+    <section className={`book page-enter ${showMovie ? 'movie-open' : ''}`} aria-live="polite">
+      {showMovie ? (
+        <StoryMovie toyName={toyName} childName={name} choices={choices} artWorld={artWorld} narratorStyle={narratorStyle} soundEnabled={soundEnabled} onClose={() => setShowMovie(false)} />
+      ) : <>
+        <div className={`book-cover cover-${artWorld}`}><div className="cover-star">✦</div><span className="cover-eyebrow">A shared story starring {name}</span><h1>{toyName} and<br />the Lost Star</h1><div className="cover-bunny">•ᴗ•</div><p>Made with a little bit of magic</p></div>
+        <div className="book-summary">
+          <p className="eyebrow">Your story is complete</p>
+          <h2>You made every important choice.</h2>
+          <p>Along the way, {toyName} chose <strong>{choices[0]?.label}</strong>, helped a new friend by <strong>{choices[1]?.label}</strong>, and promised to <strong>{choices[2]?.label?.toLowerCase()}</strong>.</p>
+          <div className="book-actions"><button className="primary-button" onClick={() => setShowMovie(true)}>▶ Watch Poppy’s adventure</button><button className={isPlaying ? 'secondary-button playing' : 'secondary-button'} onClick={toggle} disabled={!soundEnabled}>{isPlaying ? '■ Stop story' : soundEnabled ? '▶ Listen to the whole story' : 'Narration is off'}</button><button className="text-button" onClick={onRestart}>Make another story <span>→</span></button></div>
+          <div className="story-to-play"><div className="play-heading"><span>☀</span><b>Take the story off the page</b></div><p>Try one of {toyName}’s real-world adventures:</p><ul>{playIdeas[artWorld].map((idea) => <li key={idea}>{idea}</li>)}</ul></div>
+          <p className="tiny-note">A grown-up can save or share this story from the family space.</p>
+        </div>
+      </>}
     </section>
+  );
+}
+
+function StoryMovie({ toyName, childName, choices, artWorld, narratorStyle, soundEnabled, onClose }) {
+  const scenes = [
+    {
+      title: 'The map that sparkled',
+      caption: `${toyName} packed ${choices[0]?.label?.toLowerCase() ?? 'a brave little lantern'} and followed the falling star into the Whispering Woods.`,
+      accent: 'lavender'
+    },
+    {
+      title: 'A friend in the ferns',
+      caption: `When the shy firefly appeared, ${toyName} chose to ${choices[1]?.label?.toLowerCase() ?? 'sing a silly song'}. Soon, the whole forest glowed.`,
+      accent: 'peach'
+    },
+    {
+      title: 'The moonlight promise',
+      caption: `The star was safe again. Before going home, ${toyName} promised to ${choices[2]?.label?.toLowerCase() ?? 'share brave stories'}.`,
+      accent: 'sky'
+    }
+  ];
+  const [activeScene, setActiveScene] = useState(0);
+  const [isAutoplaying, setIsAutoplaying] = useState(true);
+  const currentScene = scenes[activeScene];
+  const narration = `A story for ${childName}. ${currentScene.title}. ${currentScene.caption}`;
+  const { isPlaying, toggle } = useStoryNarration(narration, narratorStyle, soundEnabled);
+
+  useEffect(() => {
+    if (!isAutoplaying) return undefined;
+    const timer = window.setTimeout(() => {
+      setActiveScene((scene) => {
+        if (scene === scenes.length - 1) {
+          setIsAutoplaying(false);
+          return scene;
+        }
+        return scene + 1;
+      });
+    }, 5600);
+    return () => window.clearTimeout(timer);
+  }, [activeScene, isAutoplaying, scenes.length]);
+
+  function moveTo(scene) {
+    setActiveScene(scene);
+    setIsAutoplaying(false);
+  }
+
+  function toggleAutoplay() {
+    if (activeScene === scenes.length - 1 && !isAutoplaying) {
+      setActiveScene(0);
+      setIsAutoplaying(true);
+      return;
+    }
+    setIsAutoplaying((playing) => !playing);
+  }
+
+  return (
+    <div className="story-movie" aria-label="Animated picture-book version of the story">
+      <div className="movie-heading"><div><p className="eyebrow">Watch your picture book</p><h2>{toyName} and the Lost Star</h2></div><button className="close-movie" onClick={onClose}>Back to the book</button></div>
+      <div className={`movie-frame movie-${currentScene.accent} art-${artWorld}`}>
+        <div className="movie-moon">☾</div><div className="movie-spark movie-spark-one">✦</div><div className="movie-spark movie-spark-two">✧</div>
+        <div className="movie-hill movie-hill-back" /><div className="movie-hill movie-hill-front" />
+        <div className="movie-tree">♣</div><div className="movie-firefly">✦</div><div className="movie-poppy">•ᴗ•</div>
+        <div className="movie-card"><span>Scene {activeScene + 1} of {scenes.length}</span><h3>{currentScene.title}</h3><p>{currentScene.caption}</p></div>
+      </div>
+      <div className="movie-controls">
+        <div className="movie-dots" aria-label={`Scene ${activeScene + 1} of ${scenes.length}`}>{scenes.map((scene, index) => <button key={scene.title} className={index === activeScene ? 'active' : ''} onClick={() => moveTo(index)} aria-label={`Go to scene ${index + 1}`} aria-current={index === activeScene} />)}</div>
+        <div className="movie-actions"><button className="secondary-button compact" onClick={toggleAutoplay}>{isAutoplaying ? '❚❚ Pause scenes' : activeScene === scenes.length - 1 ? '↻ Watch again' : '▶ Play scenes'}</button><button className="secondary-button compact" onClick={toggle} disabled={!soundEnabled}>{isPlaying ? '■ Stop narration' : soundEnabled ? '▶ Narrate this page' : 'Narration is off'}</button>{activeScene < scenes.length - 1 && <button className="primary-button compact" onClick={() => moveTo(activeScene + 1)}>Next scene <span>→</span></button>}</div>
+      </div>
+    </div>
   );
 }
 
