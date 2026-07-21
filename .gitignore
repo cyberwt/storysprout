@@ -1,0 +1,8 @@
+node_modules/
+dist/
+demo-media/
+outputs/
+work/
+.DS_Store
+.env
+.env.*
