@@ -56,7 +56,8 @@ function App() {
   const [showMenu, setShowMenu] = useState(false);
   const [artWorld, setArtWorld] = useState('watercolor');
   const [childName, setChildName] = useState('Maya');
-  const [narratorStyle, setNarratorStyle] = useState('cozy');
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const narratorStyle = 'cozy';
 
   const current = storyBeats[beat];
   const companionName = useMemo(() => toyName.trim() || 'your friend', [toyName]);
@@ -87,6 +88,11 @@ function App() {
     setStep('setup');
   }
 
+  function toggleSound() {
+    if (soundEnabled) window.speechSynthesis?.cancel();
+    setSoundEnabled((enabled) => !enabled);
+  }
+
   return (
     <main className="app-shell">
       <nav className="topbar" aria-label="StorySprout navigation">
@@ -95,7 +101,7 @@ function App() {
           <span>Story<span>Sprout</span></span>
         </button>
         <div className="nav-actions">
-          <button className="sound-button" aria-label="Sound on">♬</button>
+          <button className="sound-button" onClick={toggleSound} aria-label={soundEnabled ? 'Sound on' : 'Sound off'} aria-pressed={soundEnabled} title={soundEnabled ? 'Turn narration off' : 'Turn narration on'}>{soundEnabled ? '♬' : '♩'}</button>
           <button className="parent-button" onClick={() => setShowMenu(!showMenu)}>For grown-ups</button>
           {showMenu && <div className="parent-popover">StorySprout is an imaginative co-play space. It is not a person, and children stay in charge of every story.</div>}
         </div>
@@ -113,23 +119,30 @@ function App() {
           onContinue={continueStory}
         />
       )}
-      {step === 'story' && <Story beat={current} companionName={companionName} childName={childName} narratorStyle={narratorStyle} onChoose={choose} index={beat} artWorld={artWorld} />}
-      {step === 'book' && <Book toyName={companionName} childName={childName} narratorStyle={narratorStyle} choices={choices} onRestart={restart} artWorld={artWorld} />}
+      {step === 'story' && <Story beat={current} companionName={companionName} childName={childName} narratorStyle={narratorStyle} soundEnabled={soundEnabled} onChoose={choose} index={beat} artWorld={artWorld} />}
+      {step === 'book' && <Book toyName={companionName} childName={childName} narratorStyle={narratorStyle} soundEnabled={soundEnabled} choices={choices} onRestart={restart} artWorld={artWorld} />}
 
       <footer>Made for make-believe · Your ideas lead the way</footer>
     </main>
   );
 }
 
-function useStoryNarration(text, narratorStyle = 'cozy') {
+function useStoryNarration(text, narratorStyle = 'cozy', soundEnabled = true) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => () => {
     window.speechSynthesis?.cancel();
   }, []);
 
+  useEffect(() => {
+    if (!soundEnabled) {
+      window.speechSynthesis?.cancel();
+      setIsPlaying(false);
+    }
+  }, [soundEnabled]);
+
   function toggle() {
-    if (!window.speechSynthesis) return;
+    if (!soundEnabled || !window.speechSynthesis) return;
     if (isPlaying) {
       window.speechSynthesis.cancel();
       setIsPlaying(false);
@@ -211,20 +224,20 @@ function Setup({ toyName, childName, artWorld, onToyName, onChildName, onArtWorl
   );
 }
 
-function Story({ beat, companionName, childName, narratorStyle, onChoose, index, artWorld }) {
+function Story({ beat, companionName, childName, narratorStyle, soundEnabled, onChoose, index, artWorld }) {
   const name = childName.trim() || 'friend';
   const narration = `A gentle story for ${name}. ${beat.title}. ${beat.copy.replaceAll('Poppy', companionName)} ${beat.prompt}`;
-  const { isPlaying, toggle } = useStoryNarration(narration, narratorStyle);
+  const { isPlaying, toggle } = useStoryNarration(narration, narratorStyle, soundEnabled);
   return (
     <section className="story page-enter">
-      <div className="story-header"><span>{beat.chapter}</span><span>Scene {index + 1} · 0:{28 + index * 7}</span></div>
+      <div className="story-header"><span>{beat.chapter}</span><span>Choice {index + 1} of {storyBeats.length}</span></div>
       <div className={`scene scene-${beat.accent} art-${artWorld} ${isPlaying ? 'scene-playing' : ''}`}>
         <div className="scene-label"><span className="recording-dot" /> Bedtime story scene</div>
         <div className="scene-star">✦</div><div className="scene-star star-small">✧</div><div className="scene-tree">♣</div><div className="scene-bunny">ʚɞ</div>
         <div className="scene-caption">{isPlaying ? 'Your story is playing…' : 'Tap listen to bring this scene to life'}</div>
       </div>
       <div className="story-copy">
-        <div className="story-mode"><span className="companion-line"><span className="mini-buddy">✦</span> Narrated for {name}</span><button className={isPlaying ? 'listen-button playing' : 'listen-button'} onClick={toggle} aria-pressed={isPlaying}><span>{isPlaying ? '❚❚' : '▶'}</span>{isPlaying ? 'Pause story' : 'Listen to this scene'}</button></div>
+        <div className="story-mode"><span className="companion-line"><span className="mini-buddy">✦</span> Narrated for {name}</span><button className={isPlaying ? 'listen-button playing' : 'listen-button'} onClick={toggle} aria-pressed={isPlaying} disabled={!soundEnabled}><span>{isPlaying ? '■' : '▶'}</span>{isPlaying ? 'Stop story' : soundEnabled ? 'Listen to this scene' : 'Narration is off'}</button></div>
         <h1>{beat.title}</h1>
         <p>{beat.copy.replaceAll('Poppy', companionName)}</p>
       </div>
@@ -238,7 +251,7 @@ function Story({ beat, companionName, childName, narratorStyle, onChoose, index,
   );
 }
 
-function Book({ toyName, childName, narratorStyle, choices, onRestart, artWorld }) {
+function Book({ toyName, childName, narratorStyle, soundEnabled, choices, onRestart, artWorld }) {
   const playIdeas = {
     watercolor: ['Find a cozy corner for a blanket “forest camp.”', 'Collect three soft or green things for Poppy’s trail.'],
     starlight: ['Look out a window and name three things that sparkle.', 'Make a moon map with a grown-up using paper and crayons.'],
@@ -247,15 +260,15 @@ function Book({ toyName, childName, narratorStyle, choices, onRestart, artWorld 
   };
   const name = childName.trim() || 'friend';
   const fullStory = `A gentle bedtime story for ${name}. One quiet evening, ${toyName} saw a silver star fall into the Whispering Woods. ${toyName} packed ${choices[0]?.story ?? 'a brave little lantern'} and followed its glow. Beneath the ferns, a shy firefly offered to help. ${toyName} ${choices[1]?.story ?? 'sang a small, silly song until the firefly laughed and glowed brighter'}. Together they found the star beneath an old oak tree. Before going home, ${toyName} promised ${choices[2]?.story ?? 'to share brave stories with anyone who felt small'}. The star was safe again, and the moon watched over them both. Sleep well, ${name}. The end.`;
-  const { isPlaying, toggle } = useStoryNarration(fullStory, narratorStyle);
+  const { isPlaying, toggle } = useStoryNarration(fullStory, narratorStyle, soundEnabled);
   return (
-    <section className="book page-enter">
+    <section className="book page-enter" aria-live="polite">
       <div className={`book-cover cover-${artWorld}`}><div className="cover-star">✦</div><span className="cover-eyebrow">A shared story starring {name}</span><h1>{toyName} and<br />the Lost Star</h1><div className="cover-bunny">•ᴗ•</div><p>Made with a little bit of magic</p></div>
       <div className="book-summary">
         <p className="eyebrow">Your story is complete</p>
         <h2>You made every important choice.</h2>
         <p>Along the way, {toyName} chose <strong>{choices[0]?.label}</strong>, helped a new friend by <strong>{choices[1]?.label}</strong>, and promised to <strong>{choices[2]?.label?.toLowerCase()}</strong>.</p>
-        <div className="book-actions"><button className="primary-button" onClick={onRestart}>Make another <span>→</span></button><button className={isPlaying ? 'secondary-button playing' : 'secondary-button'} onClick={toggle}>{isPlaying ? '❚❚ Pause story' : '▶ Listen to the whole story'}</button></div>
+        <div className="book-actions"><button className="primary-button" onClick={onRestart}>Make another <span>→</span></button><button className={isPlaying ? 'secondary-button playing' : 'secondary-button'} onClick={toggle} disabled={!soundEnabled}>{isPlaying ? '■ Stop story' : soundEnabled ? '▶ Listen to the whole story' : 'Narration is off'}</button></div>
         <div className="story-to-play"><div className="play-heading"><span>☀</span><b>Take the story off the page</b></div><p>Try one of {toyName}’s real-world adventures:</p><ul>{playIdeas[artWorld].map((idea) => <li key={idea}>{idea}</li>)}</ul></div>
         <p className="tiny-note">A grown-up can save or share this story from the family space.</p>
       </div>

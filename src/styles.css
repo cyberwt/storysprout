@@ -5,6 +5,8 @@
 body { margin: 0; min-width: 320px; background: #fdfaf4; }
 button, input, textarea { font: inherit; }
 button { cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 3px solid #f0b866; outline-offset: 3px; }
+button:disabled { cursor: not-allowed; opacity: .62; }
 .app-shell { min-height: 100vh; overflow: hidden; }
 .topbar { height: 76px; max-width: 1180px; margin: auto; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; position: relative; z-index: 3; }
 .brand { border: 0; padding: 0; background: transparent; display: flex; align-items: center; gap: 9px; color: #372c65; font-family: Fraunces, serif; font-size: 24px; font-weight: 700; letter-spacing: -1.2px; }
@@ -13,6 +15,7 @@ button { cursor: pointer; }
 .nav-actions { display: flex; gap: 10px; align-items: center; position: relative; }
 .sound-button, .parent-button { background: #fffdf9; border: 1px solid #eee6d9; color: #514976; height: 36px; border-radius: 18px; }
 .sound-button { width: 36px; font-size: 18px; }
+.sound-button[aria-pressed="false"] { color: #9b8fa4; background: #f7f2ec; }
 .parent-button { padding: 0 15px; font-size: 13px; font-weight: 600; }
 .parent-popover { position: absolute; right: 0; top: 44px; width: 260px; border-radius: 14px; background: white; border: 1px solid #eee6d9; box-shadow: 0 12px 34px #3f31531c; padding: 14px; font-size: 13px; line-height: 1.45; }
 footer { text-align: center; padding: 23px; font-size: 12px; color: #817894; }
@@ -43,6 +46,7 @@ h1, h2 { font-family: Fraunces, serif; letter-spacing: -1.9px; line-height: 1.03
 .cover-starlight { background: linear-gradient(145deg, #393269, #8060a9 66%, #d79278); }.cover-crayon { background: linear-gradient(145deg, #e77269, #f4ad67 62%, #f6d178); }.cover-paper { background: linear-gradient(145deg, #577c86, #86acaa 66%, #ddc790); }
 .story-to-play { margin-top: 22px; border-radius: 16px; padding: 15px 16px; background: #fff5df; color: #6a5644; }.play-heading { display: flex; gap: 8px; align-items: center; }.play-heading span { color: #df8c51; font-size: 20px; }.story-to-play p { font-size: 12px; margin: 8px 0 4px; }.story-to-play ul { margin: 0; padding-left: 18px; font-size: 12px; line-height: 1.55; }
 @media (max-width: 680px) { .world-options { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; } }
 
 /* Original stargazer hero illustration */
 .hero-stargazer { background: linear-gradient(155deg, #272451 0%, #544586 52%, #d18b8b 100%); }
